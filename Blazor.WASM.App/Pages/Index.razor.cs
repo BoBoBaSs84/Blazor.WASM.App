@@ -1,37 +1,75 @@
-﻿using Manufaktura.Controls.Extensions;
+﻿using Blazorise;
 using Manufaktura.Controls.Model;
 using Manufaktura.Controls.Model.Fonts;
+using Manufaktura.Controls.Parser;
 using Manufaktura.Controls.Rendering;
 using Manufaktura.Controls.Rendering.Implementations;
-using Manufaktura.Music.Model;
-using Manufaktura.Music.Model.MajorAndMinor;
 using Microsoft.AspNetCore.Components;
+using System.Xml.Linq;
 
 namespace Blazor.WASM.App.Pages
 {
 	public partial class Index : ComponentBase
 	{
-		private readonly Score score = Score.CreateOneStaffScore(Clef.Treble, MajorScale.C);
-		private readonly HtmlScoreRendererSettings settings = new() { RenderSurface = HtmlScoreRendererSettings.HtmlRenderSurface.Svg };
+		private readonly MusicXmlParser musicXmlParser = new();
+		private HtmlScoreRendererSettings Settings { get; set; } = new();
+		private Score? Score { get; set; }
+		private string? FileContent { get; set; }
+		private bool RenderScore { get; set; } = false;
 
-		private void AddNote() => score.FirstStaff.Elements.Add(new Note(Pitch.G4, RhythmicDuration.Quarter));
+		private async Task OnFileChanged(FileChangedEventArgs e)
+		{
+			try
+			{
+				foreach (IFileEntry? file in e.Files)
+				{
+					// A stream is going to be the destination stream we're writing to.
+					using MemoryStream? stream = new();
+					// Here we're telling the FileEdit where to write the upload result
+					await file.WriteToStreamAsync(stream);
+
+					//var xDoc = XDocument.Load(stream);				
+
+					//Score = musicXmlParser.Parse(XDocument.Load(stream));
+					//if (Score is not null)
+					//	RenderScore = true;
+
+					// Once we reach this line it means the file is fully uploaded.
+					// In this case we're going to offset to the beginning of file
+					// so we can read it.
+					stream.Seek(0, SeekOrigin.Begin);
+
+					// Use the stream reader to read the content of uploaded file,
+					// in this case we can assume it is a textual file.
+					using StreamReader? reader = new(stream);
+					FileContent = await reader.ReadToEndAsync();
+					Console.WriteLine(FileContent);
+				}
+			}
+			catch (Exception exc)
+			{
+				Console.WriteLine(exc.Message);
+			}
+			finally
+			{
+				StateHasChanged();
+			}
+		}
 
 		protected override void OnInitialized()
 		{
-			score.FirstStaff.AddRange(StaffBuilder
-					.FromPitches(Pitch.C4, Pitch.D4, Pitch.E4, Pitch.F4, Pitch.G4, Pitch.E4)
-					.AddRhythm("8 8 8 8 4 4"));
 			string[]? musicFontUris = new[] { "/fonts/Polihymnia.svg", "/fonts/Polihymnia.ttf", "/fonts/Polihymnia.woff" };
-			settings.RenderingMode = ScoreRenderingModes.AllPages;
-			settings.Fonts.Add(MusicFontStyles.MusicFont, new HtmlFontInfo("Polihymnia", 22, musicFontUris));
-			settings.Fonts.Add(MusicFontStyles.StaffFont, new HtmlFontInfo("Polihymnia", 24, musicFontUris));
-			settings.Fonts.Add(MusicFontStyles.GraceNoteFont, new HtmlFontInfo("Polihymnia", 14, musicFontUris));
-			settings.Fonts.Add(MusicFontStyles.LyricsFont, new HtmlFontInfo("Open Sans", 9, "/fonts/OpenSans-Regular.ttf"));
-			settings.Fonts.Add(MusicFontStyles.TimeSignatureFont, new HtmlFontInfo("Open Sans", 12, "/fonts/OpenSans-Regular.ttf"));
-			settings.Fonts.Add(MusicFontStyles.DirectionFont, new HtmlFontInfo("Open Sans", 10, "/fonts/OpenSans-Regular.ttf"));
-			settings.Scale = 1;
-			settings.CustomElementPositionRatio = 0.8;
-			settings.IgnorePageMargins = true;
+			Settings.RenderSurface = HtmlScoreRendererSettings.HtmlRenderSurface.Svg;
+			Settings.RenderingMode = ScoreRenderingModes.AllPages;
+			Settings.Fonts.Add(MusicFontStyles.MusicFont, new HtmlFontInfo("Polihymnia", 22, musicFontUris));
+			Settings.Fonts.Add(MusicFontStyles.StaffFont, new HtmlFontInfo("Polihymnia", 24, musicFontUris));
+			Settings.Fonts.Add(MusicFontStyles.GraceNoteFont, new HtmlFontInfo("Polihymnia", 14, musicFontUris));
+			Settings.Fonts.Add(MusicFontStyles.LyricsFont, new HtmlFontInfo("Open Sans", 9, "/fonts/OpenSans-Regular.ttf"));
+			Settings.Fonts.Add(MusicFontStyles.TimeSignatureFont, new HtmlFontInfo("Open Sans", 12, "/fonts/OpenSans-Regular.ttf"));
+			Settings.Fonts.Add(MusicFontStyles.DirectionFont, new HtmlFontInfo("Open Sans", 10, "/fonts/OpenSans-Regular.ttf"));
+			Settings.Scale = 1;
+			Settings.CustomElementPositionRatio = 0.8;
+			Settings.IgnorePageMargins = true;
 
 			base.OnInitialized();
 		}

@@ -2,5 +2,9 @@
 
 <PageTitle>Index</PageTitle>
 
-<NoteViewer Score=@score Settings=@settings />
-<Button Color="Color.Primary" Clicked="AddNote">Add note</Button>
+<FileEdit Changed="@OnFileChanged" Filter="text/xml" AutoReset="false"/>
+
+@if (RenderScore)
+{
+	<NoteViewer Score=@Score Settings=@Settings />
+}
